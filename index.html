@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Soroban Tool</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      background: #f2f2f2;
+      font-family: Arial, Helvetica, sans-serif;
+      overflow: auto;
+    }
+
+    .tool {
+      width: min(96vw, 760px);
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 12px 8px 90px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .display {
+      font-size: clamp(40px, 9vw, 72px);
+      font-weight: 800;
+      line-height: 1;
+      margin: 0 0 10px;
+      color: #222;
+      letter-spacing: 3px;
+    }
+
+    .abacus-wrap {
+      position: relative;
+      width: min(100%, 700px);
+      aspect-ratio: 4 / 3;
+      margin: 0 auto;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .bead {
+      position: absolute;
+      width: 10.5%;
+      aspect-ratio: 1 / 1;
+      transform: translate(-50%, -50%);
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+      z-index: 4;
+    }
+
+    .bead:active {
+      cursor: grabbing;
+      z-index: 20;
+    }
+
+    .controls {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 100;
+    }
+
+    button {
+      font-size: 18px;
+      font-weight: 700;
+      padding: 9px 18px;
+      border-radius: 12px;
+      border: 2px solid #333;
+      background: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+
+    @media (max-width: 640px) {
+      .tool {
+        width: 100%;
+        padding: 10px 8px 90px;
+      }
+
+      .abacus-wrap {
+        width: min(92vw, 520px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="tool">
+    <div class="display" id="numberDisplay">0</div>
+
+    <div class="abacus-wrap" id="abacus">
+      <img class="frame" src="assets/frame.png" alt="Soroban frame" />
+    </div>
+  </main>
+
+  <div class="controls">
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <script>
+    const abacus = document.getElementById("abacus");
+    const numberDisplay = document.getElementById("numberDisplay");
+    const resetBtn = document.getElementById("resetBtn");
+
+    // Rod centers tuned to the current 2D frame
+    const columns = [
+      { place: 1000, x: 29.15, upper: false, lower: 0 },
+      { place: 100,  x: 43.10, upper: false, lower: 0 },
+      { place: 10,   x: 56.95, upper: false, lower: 0 },
+      { place: 1,    x: 70.75, upper: false, lower: 0 }
+    ];
+
+    // Upper bead:
+    // - higher at rest
+    // - active position lowered so it touches the middle beam from above
+    const upperY = {
+      inactive: 14.8,
+      active: 28.5
+    };
+
+    // Lower beads:
+    // - active positions rise up close to the middle beam
+    // - inactive positions sit lower but still close together
+    // - bottom bead stays inside the frame
+    const lowerActiveY = [42.5, 50.3, 58.1, 65.9];
+    const lowerInactiveY = [58.6, 66.4, 74.2, 82.0];
+
+    const beads = [];
+    let dragging = null;
+
+    function createBeads() {
+      abacus.querySelectorAll(".bead").forEach(b => b.remove());
+      beads.length = 0;
+
+      columns.forEach((col, colIndex) => {
+        createBead({ colIndex, type: "upper", lowerIndex: null });
+        for (let i = 0; i < 4; i++) {
+          createBead({ colIndex, type: "lower", lowerIndex: i });
+        }
+      });
+
+      syncBeadPositions();
+      updateNumber();
+    }
+
+    function createBead(data) {
+      const img = document.createElement("img");
+      img.src = "assets/bead.png";
+      img.className = "bead";
+      img.draggable = false;
+      img.dataset.col = data.colIndex;
+      img.dataset.type = data.type;
+      img.dataset.lowerIndex = data.lowerIndex ?? "";
+
+      img.addEventListener("pointerdown", onPointerDown);
+      beads.push(img);
+      abacus.appendChild(img);
+    }
+
+    function syncBeadPositions() {
+      beads.forEach(bead => {
+        const colIndex = Number(bead.dataset.col);
+        const type = bead.dataset.type;
+        const col = columns[colIndex];
+
+        bead.style.left = col.x + "%";
+
+        if (type === "upper") {
+          bead.style.top = (col.upper ? upperY.active : upperY.inactive) + "%";
+        } else {
+          const i = Number(bead.dataset.lowerIndex);
+          bead.style.top = (i < col.lower ? lowerActiveY[i] : lowerInactiveY[i]) + "%";
+        }
+      });
+    }
+
+    function onPointerDown(e) {
+      const bead = e.currentTarget;
+      bead.setPointerCapture(e.pointerId);
+
+      dragging = {
+        bead,
+        rect: abacus.getBoundingClientRect()
+      };
+
+      bead.addEventListener("pointermove", onPointerMove);
+      bead.addEventListener("pointerup", onPointerUp);
+      bead.addEventListener("pointercancel", onPointerUp);
+    }
+
+    function onPointerMove(e) {
+      if (!dragging) return;
+
+      const bead = dragging.bead;
+      const rect = dragging.rect;
+      const colIndex = Number(bead.dataset.col);
+      const type = bead.dataset.type;
+      const col = columns[colIndex];
+      const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
+
+      if (type === "upper") {
+        const threshold = (upperY.inactive + upperY.active) / 2;
+        col.upper = yPercent > threshold;
+      } else {
+        const i = Number(bead.dataset.lowerIndex);
+        const threshold = (lowerActiveY[i] + lowerInactiveY[i]) / 2;
+
+        // Dragging the 2nd / 3rd / 4th lower bead moves the beads above together
+        if (yPercent < threshold) {
+          col.lower = i + 1;
+        } else {
+          col.lower = i;
+        }
+      }
+
+      syncBeadPositions();
+      updateNumber();
+    }
+
+    function onPointerUp() {
+      if (!dragging) return;
+
+      const bead = dragging.bead;
+      bead.removeEventListener("pointermove", onPointerMove);
+      bead.removeEventListener("pointerup", onPointerUp);
+      bead.removeEventListener("pointercancel", onPointerUp);
+      dragging = null;
+
+      syncBeadPositions();
+      updateNumber();
+    }
+
+    function updateNumber() {
+      let total = 0;
+
+      columns.forEach(col => {
+        const digit = (col.upper ? 5 : 0) + col.lower;
+        total += digit * col.place;
+      });
+
+      numberDisplay.textContent = total.toString();
+    }
+
+    function resetAbacus() {
+      columns.forEach(col => {
+        col.upper = false;
+        col.lower = 0;
+      });
+
+      syncBeadPositions();
+      updateNumber();
+    }
+
+    resetBtn.addEventListener("click", resetAbacus);
+
+    createBeads();
+  </script>
+</body>
+</html>
