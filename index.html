@@ -30,13 +30,72 @@
       text-align: center;
     }
 
+    .top-panel {
+      position: relative;
+      width: 100%;
+      min-height: 108px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 0 10px;
+    }
+
     .display {
-      font-size: clamp(40px, 9vw, 72px);
+      width: 100%;
+      padding: 0 96px;
+      color: #222;
+      line-height: 1.1;
+    }
+
+    .number-line {
+      font-size: clamp(40px, 8vw, 68px);
       font-weight: 800;
       line-height: 1;
-      margin: 0 0 10px;
-      color: #222;
       letter-spacing: 3px;
+    }
+
+    .word-line {
+      margin-top: 7px;
+      min-height: 28px;
+      font-size: clamp(18px, 2.8vw, 25px);
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: .3px;
+      overflow-wrap: anywhere;
+    }
+
+    .word-line.hidden {
+      display: none;
+    }
+
+    .lang-switch {
+      position: absolute;
+      right: 0;
+      top: 8px;
+      display: flex;
+      gap: 5px;
+      z-index: 100;
+      background: #ffffff;
+      padding: 5px;
+      border-radius: 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.10);
+    }
+
+    .lang-btn {
+      min-width: 42px;
+      height: 34px;
+      border-radius: 10px;
+      border: 2px solid #222;
+      background: #fff;
+      color: #111;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .lang-btn.active {
+      background: #222;
+      color: #fff;
     }
 
     .abacus-wrap {
@@ -56,6 +115,26 @@
       object-fit: contain;
       pointer-events: none;
       z-index: 1;
+    }
+
+    .rod-label {
+      position: absolute;
+      bottom: 4.8%;
+      transform: translateX(-50%);
+      z-index: 8;
+      font-size: clamp(14px, 2.3vw, 21px);
+      font-weight: 900;
+      color: #222;
+      background: rgba(255, 255, 255, .78);
+      border-radius: 8px;
+      padding: 2px 7px;
+      line-height: 1.1;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .rod-label.hidden {
+      display: none;
     }
 
     .bead {
@@ -98,18 +177,82 @@
         padding: 10px 8px 90px;
       }
 
+      .top-panel {
+        min-height: 128px;
+        margin-bottom: 4px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      .display {
+        padding: 0 6px;
+      }
+
+      .number-line {
+        font-size: clamp(38px, 12vw, 58px);
+      }
+
+      .word-line {
+        font-size: clamp(17px, 5vw, 22px);
+        min-height: 24px;
+      }
+
+      /*
+        Mobile fix:
+        Put NUM / ZH / BM above the number instead of floating over it.
+      */
+      .lang-switch {
+        position: static;
+        right: auto;
+        top: auto;
+        order: -1;
+        margin: 0 auto;
+        gap: 4px;
+        padding: 4px;
+      }
+
+      .lang-btn {
+        min-width: 46px;
+        height: 31px;
+        font-size: 13px;
+        padding: 5px 10px;
+      }
+
       .abacus-wrap {
         width: min(92vw, 520px);
+      }
+
+      .rod-label {
+        bottom: 4.4%;
+        font-size: clamp(13px, 3.6vw, 18px);
+        padding: 2px 5px;
       }
     }
   </style>
 </head>
 <body>
   <main class="tool">
-    <div class="display" id="numberDisplay">0</div>
+    <section class="top-panel">
+      <div class="lang-switch" aria-label="Language switch">
+        <button class="lang-btn active" type="button" data-lang="num">NUM</button>
+        <button class="lang-btn" type="button" data-lang="zh">ZH</button>
+        <button class="lang-btn" type="button" data-lang="bm">BM</button>
+      </div>
+
+      <div class="display">
+        <div class="number-line" id="numberDisplay">0</div>
+        <div class="word-line hidden" id="wordDisplay"></div>
+      </div>
+    </section>
 
     <div class="abacus-wrap" id="abacus">
       <img class="frame" src="assets/frame.png" alt="Soroban frame" />
+
+      <div class="rod-label hidden" data-label-col="0"></div>
+      <div class="rod-label hidden" data-label-col="1"></div>
+      <div class="rod-label hidden" data-label-col="2"></div>
+      <div class="rod-label hidden" data-label-col="3"></div>
     </div>
   </main>
 
@@ -120,7 +263,10 @@
   <script>
     const abacus = document.getElementById("abacus");
     const numberDisplay = document.getElementById("numberDisplay");
+    const wordDisplay = document.getElementById("wordDisplay");
     const resetBtn = document.getElementById("resetBtn");
+    const langButtons = document.querySelectorAll(".lang-btn");
+    const rodLabels = document.querySelectorAll(".rod-label");
 
     // Rod centers tuned to the current 2D frame
     const columns = [
@@ -129,6 +275,55 @@
       { place: 10,   x: 56.95, upper: false, lower: 0 },
       { place: 1,    x: 70.75, upper: false, lower: 0 }
     ];
+
+    const languageData = {
+      num: {
+        labels: ["", "", "", ""],
+        showLabels: false,
+        words: numberToNum
+      },
+      zh: {
+        labels: ["千", "百", "十", "个"],
+        showLabels: true,
+        words: numberToChinese
+      },
+      bm: {
+        labels: ["ribu", "ratus", "puluh", "sa"],
+        showLabels: true,
+        words: numberToMalay
+      }
+    };
+
+    let currentLang = "num";
+
+    rodLabels.forEach(label => {
+      const colIndex = Number(label.dataset.labelCol);
+      label.style.left = columns[colIndex].x + "%";
+    });
+
+    langButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        setLanguage(button.dataset.lang);
+      });
+    });
+
+    function setLanguage(lang) {
+      currentLang = lang;
+
+      langButtons.forEach(button => {
+        button.classList.toggle("active", button.dataset.lang === lang);
+      });
+
+      const data = languageData[lang];
+
+      rodLabels.forEach((label, index) => {
+        label.textContent = data.labels[index];
+        label.classList.toggle("hidden", !data.showLabels);
+      });
+
+      wordDisplay.classList.toggle("hidden", lang === "num");
+      updateNumber();
+    }
 
     // Upper bead:
     // - higher at rest
@@ -250,7 +445,7 @@
       updateNumber();
     }
 
-    function updateNumber() {
+    function getTotal() {
       let total = 0;
 
       columns.forEach(col => {
@@ -258,7 +453,13 @@
         total += digit * col.place;
       });
 
+      return total;
+    }
+
+    function updateNumber() {
+      const total = getTotal();
       numberDisplay.textContent = total.toString();
+      wordDisplay.textContent = languageData[currentLang].words(total);
     }
 
     function resetAbacus() {
@@ -271,9 +472,89 @@
       updateNumber();
     }
 
+    function numberToNum(n) {
+      return "";
+    }
+
+    function numberToMalay(n) {
+      const ones = ["sifar", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "lapan", "sembilan"];
+
+      function under100(num) {
+        if (num < 10) return ones[num];
+        if (num === 10) return "sepuluh";
+        if (num === 11) return "sebelas";
+        if (num < 20) return ones[num - 10] + " belas";
+
+        const puluh = Math.floor(num / 10);
+        const sa = num % 10;
+        return ones[puluh] + " puluh" + (sa ? " " + ones[sa] : "");
+      }
+
+      function under1000(num) {
+        if (num < 100) return under100(num);
+
+        const ratus = Math.floor(num / 100);
+        const baki = num % 100;
+
+        let text = ratus === 1 ? "seratus" : ones[ratus] + " ratus";
+        if (baki > 0) text += " " + under100(baki);
+        return text;
+      }
+
+      if (n === 0) return "sifar";
+      if (n < 1000) return under1000(n);
+
+      const ribu = Math.floor(n / 1000);
+      const baki = n % 1000;
+
+      let text = ribu === 1 ? "seribu" : ones[ribu] + " ribu";
+      if (baki > 0) text += " " + under1000(baki);
+      return text;
+    }
+
+    function numberToChinese(n) {
+      const digit = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+
+      if (n === 0) return "零";
+
+      const thousands = Math.floor(n / 1000);
+      const hundreds = Math.floor((n % 1000) / 100);
+      const tens = Math.floor((n % 100) / 10);
+      const ones = n % 10;
+
+      let text = "";
+
+      if (thousands > 0) {
+        text += digit[thousands] + "千";
+      }
+
+      if (hundreds > 0) {
+        text += digit[hundreds] + "百";
+      } else if (thousands > 0 && (tens > 0 || ones > 0)) {
+        text += "零";
+      }
+
+      if (tens > 0) {
+        if (tens === 1 && thousands === 0 && hundreds === 0) {
+          text += "十";
+        } else {
+          text += digit[tens] + "十";
+        }
+      } else if ((thousands > 0 || hundreds > 0) && ones > 0) {
+        if (!text.endsWith("零")) text += "零";
+      }
+
+      if (ones > 0) {
+        text += digit[ones];
+      }
+
+      return text;
+    }
+
     resetBtn.addEventListener("click", resetAbacus);
 
     createBeads();
+    setLanguage("num");
   </script>
 </body>
 </html>
