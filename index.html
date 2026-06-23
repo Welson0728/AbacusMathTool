@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Soroban Tool</title>
+  <title>Soroban Tool EN ZH BM</title>
   <style>
     * {
       box-sizing: border-box;
@@ -98,6 +98,24 @@
       color: #fff;
     }
 
+    .speak-btn {
+      min-width: 42px;
+      height: 34px;
+      border-radius: 10px;
+      border: 2px solid #222;
+      background: #fff;
+      color: #111;
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+      padding: 5px 8px;
+    }
+
+    .speak-btn:active {
+      transform: scale(.98);
+    }
+
+
     .abacus-wrap {
       position: relative;
       width: min(100%, 700px);
@@ -122,13 +140,15 @@
       bottom: 4.8%;
       transform: translateX(-50%);
       z-index: 8;
-      font-size: clamp(14px, 2.3vw, 21px);
+
+      /* Smaller and consistent for EN labels: thousand / hundred / ten / one */
+      font-size: clamp(10px, 1.6vw, 15px);
       font-weight: 900;
       color: #222;
       background: rgba(255, 255, 255, .78);
       border-radius: 8px;
-      padding: 2px 7px;
-      line-height: 1.1;
+      padding: 2px 4px;
+      line-height: 1;
       pointer-events: none;
       white-space: nowrap;
     }
@@ -200,7 +220,7 @@
 
       /*
         Mobile fix:
-        Put NUM / ZH / BM above the number instead of floating over it.
+        Put EN / ZH / BM above the number instead of floating over it.
       */
       .lang-switch {
         position: static;
@@ -219,14 +239,24 @@
         padding: 5px 10px;
       }
 
+      .speak-btn {
+        min-width: 38px;
+        height: 31px;
+        font-size: 14px;
+        padding: 5px 8px;
+      }
+
       .abacus-wrap {
         width: min(92vw, 520px);
       }
 
       .rod-label {
         bottom: 4.4%;
-        font-size: clamp(13px, 3.6vw, 18px);
-        padding: 2px 5px;
+
+        /* Smaller and consistent on mobile */
+        font-size: clamp(9px, 2.6vw, 12px);
+        padding: 1px 3px;
+        line-height: 1;
       }
     }
   </style>
@@ -235,9 +265,10 @@
   <main class="tool">
     <section class="top-panel">
       <div class="lang-switch" aria-label="Language switch">
-        <button class="lang-btn active" type="button" data-lang="num">NUM</button>
+        <button class="lang-btn active" type="button" data-lang="en">EN</button>
         <button class="lang-btn" type="button" data-lang="zh">ZH</button>
         <button class="lang-btn" type="button" data-lang="bm">BM</button>
+        <button class="speak-btn" id="speakBtn" type="button" aria-label="Speak">🔊</button>
       </div>
 
       <div class="display">
@@ -265,6 +296,7 @@
     const numberDisplay = document.getElementById("numberDisplay");
     const wordDisplay = document.getElementById("wordDisplay");
     const resetBtn = document.getElementById("resetBtn");
+    const speakBtn = document.getElementById("speakBtn");
     const langButtons = document.querySelectorAll(".lang-btn");
     const rodLabels = document.querySelectorAll(".rod-label");
 
@@ -277,29 +309,56 @@
     ];
 
     const languageData = {
-      num: {
-        labels: ["", "", "", ""],
-        showLabels: false,
-        words: numberToNum
+      en: {
+        labels: ["thousand", "hundred", "ten", "one"],
+        showLabels: true,
+        words: numberToEnglish,
+        speechLang: "en-US"
       },
       zh: {
         labels: ["千", "百", "十", "个"],
         showLabels: true,
-        words: numberToChinese
+        words: numberToChinese,
+        speechLang: "zh-CN"
       },
       bm: {
         labels: ["ribu", "ratus", "puluh", "sa"],
         showLabels: true,
-        words: numberToMalay
+        words: numberToMalay,
+        speechLang: "ms-MY"
       }
     };
 
-    let currentLang = "num";
+    let currentLang = "en";
 
-    rodLabels.forEach(label => {
-      const colIndex = Number(label.dataset.labelCol);
-      label.style.left = columns[colIndex].x + "%";
-    });
+    /*
+      Label position fine tuning only.
+      This will NOT move the abacus beads.
+
+      Order:
+      [thousand, hundred, ten, one]
+
+      Positive number = move right
+      Negative number = move left
+
+      Your current mobile issue:
+      hundred is moved slightly right by 1.2%.
+    */
+    const labelOffsetPc = [0, 0, 0, 0];
+    const labelOffsetMobile = [0, 1.2, 0, 0];
+
+    function updateLabelPositions() {
+      const isMobile = window.matchMedia("(max-width: 640px)").matches;
+
+      rodLabels.forEach(label => {
+        const colIndex = Number(label.dataset.labelCol);
+        const offset = isMobile ? labelOffsetMobile[colIndex] : labelOffsetPc[colIndex];
+        label.style.left = (columns[colIndex].x + offset) + "%";
+      });
+    }
+
+    updateLabelPositions();
+    window.addEventListener("resize", updateLabelPositions);
 
     langButtons.forEach(button => {
       button.addEventListener("click", () => {
@@ -309,6 +368,7 @@
 
     function setLanguage(lang) {
       currentLang = lang;
+      stopMalayAudio();
 
       langButtons.forEach(button => {
         button.classList.toggle("active", button.dataset.lang === lang);
@@ -321,7 +381,7 @@
         label.classList.toggle("hidden", !data.showLabels);
       });
 
-      wordDisplay.classList.toggle("hidden", lang === "num");
+      wordDisplay.classList.remove("hidden");
       updateNumber();
     }
 
@@ -463,6 +523,7 @@
     }
 
     function resetAbacus() {
+      stopMalayAudio();
       columns.forEach(col => {
         col.upper = false;
         col.lower = 0;
@@ -472,8 +533,32 @@
       updateNumber();
     }
 
-    function numberToNum(n) {
-      return "";
+    function numberToEnglish(n) {
+      const ones = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+                    "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+                    "seventeen", "eighteen", "nineteen"];
+      const tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+      function under100(num) {
+        if (num < 20) return ones[num];
+        const t = Math.floor(num / 10);
+        const o = num % 10;
+        return tens[t] + (o ? " " + ones[o] : "");
+      }
+
+      function under1000(num) {
+        if (num < 100) return under100(num);
+        const h = Math.floor(num / 100);
+        const rest = num % 100;
+        return ones[h] + " hundred" + (rest ? " " + under100(rest) : "");
+      }
+
+      if (n === 0) return "zero";
+      if (n < 1000) return under1000(n);
+
+      const th = Math.floor(n / 1000);
+      const rest = n % 1000;
+      return ones[th] + " thousand" + (rest ? " " + under1000(rest) : "");
     }
 
     function numberToMalay(n) {
@@ -552,9 +637,168 @@
     }
 
     resetBtn.addEventListener("click", resetAbacus);
+    speakBtn.addEventListener("click", speakCurrentAnswer);
+
+    async function speakCurrentAnswer() {
+      const total = getTotal();
+      const text = languageData[currentLang].words(total);
+      if (!text) return;
+
+      // BM uses your own Malaysia Malay MP3 files for accurate pronunciation.
+      if (currentLang === "bm") {
+        window.speechSynthesis?.cancel();
+        await playMalayMp3Sequence(text);
+        return;
+      }
+
+      // EN and ZH still use browser TTS.
+      if (!("speechSynthesis" in window)) return;
+
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = languageData[currentLang].speechLang;
+      utterance.voice = getPreferredVoice(currentLang);
+
+      if (currentLang === "zh") {
+        utterance.rate = 0.85;
+        utterance.pitch = 1.05;
+      } else {
+        utterance.rate = 0.9;
+        utterance.pitch = 1.15;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function stopMalayAudio() {
+      bmAudioToken++;
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }
+      window.speechSynthesis?.cancel();
+    }
+
+    let currentAudio = null;
+    let bmAudioToken = 0;
+
+    async function playMalayMp3Sequence(text) {
+      bmAudioToken++;
+      const token = bmAudioToken;
+
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }
+
+      const words = text.trim().toLowerCase().split(/\s+/).filter(Boolean);
+
+      for (const word of words) {
+        if (token !== bmAudioToken) return;
+
+        const src = `assets/audio/bm/${word}.mp3`;
+        await playOneMp3(src, token);
+        await wait(80);
+      }
+    }
+
+    function playOneMp3(src, token) {
+      return new Promise(resolve => {
+        const audio = new Audio(src);
+        currentAudio = audio;
+
+        audio.onended = resolve;
+        audio.onerror = () => {
+          console.warn("Missing audio file:", src);
+          resolve();
+        };
+
+        audio.play().catch(err => {
+          console.warn("Audio play blocked or failed:", err);
+          resolve();
+        });
+      });
+    }
+
+    function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function getPreferredVoice(lang) {
+      const voices = window.speechSynthesis.getVoices();
+
+      const femaleKeywords = [
+        "female", "woman", "girl",
+        "zira", "aria", "jenny", "samantha", "victoria", "susan",
+        "karen", "moira", "tessa", "siti", "yasmin", "ayu"
+      ];
+
+      function soundsFemale(voice) {
+        const name = voice.name.toLowerCase();
+        return femaleKeywords.some(keyword => name.includes(keyword));
+      }
+
+      function byLang(code) {
+        return voices.filter(v => v.lang.toLowerCase() === code.toLowerCase());
+      }
+
+      function byLangPrefix(prefix) {
+        return voices.filter(v => v.lang.toLowerCase().startsWith(prefix.toLowerCase()));
+      }
+
+      function chooseFemale(list) {
+        return list.find(soundsFemale) || list[0] || null;
+      }
+
+      if (lang === "bm") {
+        // Best: exact Malaysia Malay voice
+        let list = byLang("ms-MY");
+        let voice = chooseFemale(list);
+        if (voice) return voice;
+
+        // Next: any Malay voice
+        list = byLangPrefix("ms");
+        voice = chooseFemale(list);
+        if (voice) return voice;
+
+        // Some systems label Malay strangely. Try name search.
+        list = voices.filter(v => {
+          const name = v.name.toLowerCase();
+          const code = v.lang.toLowerCase();
+          return name.includes("malay") || name.includes("malaysia") || code.includes("ms");
+        });
+        voice = chooseFemale(list);
+        if (voice) return voice;
+      }
+
+      if (lang === "en") {
+        // Prefer common female English voices
+        let list = byLang("en-US").concat(byLang("en-GB")).concat(byLangPrefix("en"));
+        let voice = chooseFemale(list);
+        if (voice) return voice;
+      }
+
+      if (lang === "zh") {
+        let list = byLang("zh-CN")
+          .concat(byLang("zh-TW"))
+          .concat(byLang("zh-HK"))
+          .concat(byLangPrefix("zh"));
+        return list[0] || null;
+      }
+
+      return null;
+    }
+
+    // Some browsers load voices after page load.
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
 
     createBeads();
-    setLanguage("num");
+    setLanguage("en");
   </script>
 </body>
 </html>
