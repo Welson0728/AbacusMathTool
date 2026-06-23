@@ -697,26 +697,47 @@
       for (const word of words) {
         if (token !== bmAudioToken) return;
 
-        const src = `assets/audio/bm/${word}.mp3`;
-        await playOneMp3(src, token);
+        // GitHub Pages is case-sensitive.
+        // This supports both:
+        // satu.mp3 and satu.MP3
+        await playMalayWordMp3(word, token);
         await wait(80);
       }
     }
 
+    async function playMalayWordMp3(word, token) {
+      const paths = [
+        `assets/audio/bm/${word}.mp3`,
+        `assets/audio/bm/${word}.MP3`
+      ];
+
+      for (const src of paths) {
+        const ok = await playOneMp3(src, token);
+        if (ok) return true;
+      }
+
+      console.warn("Missing BM audio file:", word);
+      return false;
+    }
+
     function playOneMp3(src, token) {
       return new Promise(resolve => {
+        if (token !== bmAudioToken) return resolve(false);
+
         const audio = new Audio(src);
         currentAudio = audio;
 
-        audio.onended = resolve;
+        audio.onended = () => resolve(true);
+
         audio.onerror = () => {
-          console.warn("Missing audio file:", src);
-          resolve();
+          resolve(false);
         };
 
-        audio.play().catch(err => {
+        audio.play().then(() => {
+          // playing
+        }).catch(err => {
           console.warn("Audio play blocked or failed:", err);
-          resolve();
+          resolve(false);
         });
       });
     }
