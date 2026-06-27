@@ -33,16 +33,18 @@
     .top-panel {
       position: relative;
       width: 100%;
-      min-height: 108px;
+      min-height: 150px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 8px;
       margin: 0 0 10px;
     }
 
     .display {
       width: 100%;
-      padding: 0 96px;
+      padding: 0 6px;
       color: #222;
       line-height: 1.1;
     }
@@ -52,6 +54,10 @@
       font-weight: 800;
       line-height: 1;
       letter-spacing: 3px;
+    }
+
+    .number-line.hidden {
+      display: none;
     }
 
     .word-line {
@@ -69,9 +75,9 @@
     }
 
     .lang-switch {
-      position: absolute;
-      right: 0;
-      top: 8px;
+      position: static;
+      right: auto;
+      top: auto;
       display: flex;
       gap: 5px;
       z-index: 100;
@@ -79,10 +85,13 @@
       padding: 5px;
       border-radius: 13px;
       box-shadow: 0 2px 8px rgba(0,0,0,.10);
+      margin: 0 auto;
     }
 
-    .lang-btn {
-      min-width: 42px;
+    .lang-select {
+      appearance: none;
+      -webkit-appearance: none;
+      min-width: 112px;
       height: 34px;
       border-radius: 10px;
       border: 2px solid #222;
@@ -91,11 +100,37 @@
       font-size: 14px;
       font-weight: 900;
       cursor: pointer;
+      padding: 5px 30px 5px 10px;
+      background-image:
+        linear-gradient(45deg, transparent 50%, #222 50%),
+        linear-gradient(135deg, #222 50%, transparent 50%);
+      background-position:
+        calc(100% - 16px) 14px,
+        calc(100% - 10px) 14px;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
     }
 
-    .lang-btn.active {
-      background: #222;
-      color: #fff;
+    .lang-select:focus {
+      outline: 3px solid rgba(0,0,0,.14);
+      outline-offset: 2px;
+    }
+
+    .answer-btn {
+      min-width: 66px;
+      height: 34px;
+      border-radius: 10px;
+      border: 2px solid #222;
+      background: #fff;
+      color: #111;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      padding: 5px 8px;
+    }
+
+    .answer-btn:active {
+      transform: scale(.98);
     }
 
     .speak-btn {
@@ -113,6 +148,82 @@
 
     .speak-btn:active {
       transform: scale(.98);
+    }
+
+    .speak-btn:disabled {
+      opacity: .42;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .answer-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .number-input-panel {
+      width: min(100%, 700px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 auto 10px;
+      padding: 8px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.10);
+    }
+
+    .input-label {
+      font-size: 15px;
+      font-weight: 900;
+      color: #222;
+    }
+
+    .number-input {
+      width: 140px;
+      height: 36px;
+      border-radius: 10px;
+      border: 2px solid #222;
+      padding: 5px 10px;
+      font-size: 16px;
+      font-weight: 900;
+      text-align: center;
+      color: #111;
+      background: #fff;
+    }
+
+    .show-number-btn {
+      min-width: 70px;
+      height: 36px;
+      border-radius: 10px;
+      border: 2px solid #222;
+      background: #fff;
+      color: #111;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      padding: 5px 10px;
+      box-shadow: none;
+    }
+
+    .input-error {
+      flex-basis: 100%;
+      min-height: 18px;
+      line-height: 1.2;
+      color: #b00020;
+      font-size: 14px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .input-error.hidden {
+      display: none;
     }
 
 
@@ -198,7 +309,7 @@
       }
 
       .top-panel {
-        min-height: 128px;
+        min-height: 138px;
         margin-bottom: 4px;
         flex-direction: column;
         justify-content: center;
@@ -232,11 +343,22 @@
         padding: 4px;
       }
 
-      .lang-btn {
-        min-width: 46px;
+      .lang-select {
+        min-width: 112px;
         height: 31px;
         font-size: 13px;
-        padding: 5px 10px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+        background-position:
+          calc(100% - 16px) 13px,
+          calc(100% - 10px) 13px;
+      }
+
+      .answer-btn {
+        min-width: 58px;
+        height: 31px;
+        font-size: 13px;
+        padding: 5px 7px;
       }
 
       .speak-btn {
@@ -244,6 +366,24 @@
         height: 31px;
         font-size: 14px;
         padding: 5px 8px;
+      }
+
+      .number-input-panel {
+        width: min(92vw, 520px);
+        margin-bottom: 8px;
+        padding: 7px;
+        gap: 6px;
+      }
+
+      .number-input {
+        width: 120px;
+        height: 34px;
+        font-size: 15px;
+      }
+
+      .show-number-btn {
+        height: 34px;
+        font-size: 13px;
       }
 
       .abacus-wrap {
@@ -265,16 +405,29 @@
   <main class="tool">
     <section class="top-panel">
       <div class="lang-switch" aria-label="Language switch">
-        <button class="lang-btn active" type="button" data-lang="en">EN</button>
-        <button class="lang-btn" type="button" data-lang="zh">ZH</button>
-        <button class="lang-btn" type="button" data-lang="bm">BM</button>
-        <button class="speak-btn" id="speakBtn" type="button" aria-label="Speak">🔊</button>
+        <select class="lang-select" id="languageSelect" aria-label="Language">
+          <option value="en">English</option>
+          <option value="zh">Chinese</option>
+          <option value="bm">Malay</option>
+        </select>
       </div>
 
       <div class="display">
-        <div class="number-line" id="numberDisplay">0</div>
+        <div class="number-line hidden" id="numberDisplay">0</div>
         <div class="word-line hidden" id="wordDisplay"></div>
       </div>
+
+      <div class="answer-controls" aria-label="Answer controls">
+        <button class="answer-btn" id="answerBtn" type="button" aria-label="Show answer">Answer</button>
+        <button class="speak-btn" id="speakBtn" type="button" aria-label="Speak">🔊</button>
+      </div>
+    </section>
+
+    <section class="number-input-panel" aria-label="Number input">
+      <span class="input-label" id="keyNumberLabel">Number</span>
+      <input class="number-input" id="keyNumberInput" type="number" inputmode="numeric" min="0" max="9999" placeholder="0" />
+      <button class="show-number-btn" id="showNumberBtn" type="button">Show</button>
+      <div class="input-error hidden" id="inputError" role="alert"></div>
     </section>
 
     <div class="abacus-wrap" id="abacus">
@@ -297,7 +450,12 @@
     const wordDisplay = document.getElementById("wordDisplay");
     const resetBtn = document.getElementById("resetBtn");
     const speakBtn = document.getElementById("speakBtn");
-    const langButtons = document.querySelectorAll(".lang-btn");
+    const answerBtn = document.getElementById("answerBtn");
+    const languageSelect = document.getElementById("languageSelect");
+    const keyNumberLabel = document.getElementById("keyNumberLabel");
+    const keyNumberInput = document.getElementById("keyNumberInput");
+    const showNumberBtn = document.getElementById("showNumberBtn");
+    const inputError = document.getElementById("inputError");
     const rodLabels = document.querySelectorAll(".rod-label");
 
     // Rod centers tuned to the current 2D frame
@@ -329,7 +487,32 @@
       }
     };
 
+    const buttonTextData = {
+      en: {
+        answer: "Answer",
+        reset: "Reset",
+        number: "Number",
+        show: "Show",
+        error: "Please enter a number from 0 to 9999."
+      },
+      zh: {
+        answer: "答案",
+        reset: "重置",
+        number: "数字",
+        show: "显示",
+        error: "请输入 0 到 9999 的数字。"
+      },
+      bm: {
+        answer: "Jawapan",
+        reset: "Mula Semula",
+        number: "Nombor",
+        show: "Papar",
+        error: "Sila masukkan nombor dari 0 hingga 9999."
+      }
+    };
+
     let currentLang = "en";
+    let answerVisible = false;
 
     /*
       Label position fine tuning only.
@@ -360,30 +543,95 @@
     updateLabelPositions();
     window.addEventListener("resize", updateLabelPositions);
 
-    langButtons.forEach(button => {
-      button.addEventListener("click", () => {
-        setLanguage(button.dataset.lang);
-      });
+    languageSelect.addEventListener("change", () => {
+      setLanguage(languageSelect.value);
     });
 
     function setLanguage(lang) {
       currentLang = lang;
       stopMalayAudio();
 
-      langButtons.forEach(button => {
-        button.classList.toggle("active", button.dataset.lang === lang);
-      });
+      languageSelect.value = lang;
 
       const data = languageData[lang];
+      const buttonText = buttonTextData[lang];
+
+      answerBtn.textContent = buttonText.answer;
+      answerBtn.setAttribute("aria-label", buttonText.answer);
+      resetBtn.textContent = buttonText.reset;
+      keyNumberLabel.textContent = buttonText.number;
+      showNumberBtn.textContent = buttonText.show;
+      updateInputErrorMessage();
 
       rodLabels.forEach((label, index) => {
         label.textContent = data.labels[index];
         label.classList.toggle("hidden", !data.showLabels);
       });
 
-      wordDisplay.classList.remove("hidden");
+      hideAnswer();
       updateNumber();
     }
+
+    let currentInputError = false;
+
+    function showInputError() {
+      currentInputError = true;
+      inputError.textContent = buttonTextData[currentLang].error;
+      inputError.classList.remove("hidden");
+    }
+
+    function clearInputError() {
+      currentInputError = false;
+      inputError.textContent = "";
+      inputError.classList.add("hidden");
+    }
+
+    function updateInputErrorMessage() {
+      if (currentInputError) inputError.textContent = buttonTextData[currentLang].error;
+    }
+
+    function getKeyInputNumber() {
+      const value = Number(keyNumberInput.value);
+      if (!Number.isFinite(value)) return null;
+      const number = Math.floor(value);
+      if (number < 0 || number > 9999) return null;
+      return number;
+    }
+
+    function showNumberOnAbacus() {
+      const number = getKeyInputNumber();
+      if (number === null) {
+        showInputError();
+        return;
+      }
+
+      clearInputError();
+      stopMalayAudio();
+      setAbacusNumber(number);
+      hideAnswer();
+      updateNumber();
+    }
+
+    function setAbacusNumber(number) {
+      const digits = [
+        Math.floor(number / 1000) % 10,
+        Math.floor(number / 100) % 10,
+        Math.floor(number / 10) % 10,
+        number % 10
+      ];
+
+      digits.forEach((digit, index) => {
+        columns[index].upper = digit >= 5;
+        columns[index].lower = digit % 5;
+      });
+
+      syncBeadPositions();
+    }
+
+    showNumberBtn.addEventListener("click", showNumberOnAbacus);
+    keyNumberInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") showNumberOnAbacus();
+    });
 
     // Upper bead:
     // - higher at rest
@@ -489,6 +737,8 @@
       }
 
       syncBeadPositions();
+      clearInputError();
+      hideAnswer();
       updateNumber();
     }
 
@@ -520,10 +770,29 @@
       const total = getTotal();
       numberDisplay.textContent = total.toString();
       wordDisplay.textContent = languageData[currentLang].words(total);
+
+      numberDisplay.classList.toggle("hidden", !answerVisible);
+      wordDisplay.classList.toggle("hidden", !answerVisible);
+      speakBtn.disabled = !answerVisible;
+    }
+
+    function showAnswer() {
+      answerVisible = true;
+      updateNumber();
+    }
+
+    function hideAnswer() {
+      answerVisible = false;
+      numberDisplay.classList.add("hidden");
+      wordDisplay.classList.add("hidden");
+      speakBtn.disabled = true;
     }
 
     function resetAbacus() {
       stopMalayAudio();
+      hideAnswer();
+      clearInputError();
+      keyNumberInput.value = "";
       columns.forEach(col => {
         col.upper = false;
         col.lower = 0;
@@ -655,6 +924,7 @@
     }
 
     resetBtn.addEventListener("click", resetAbacus);
+    answerBtn.addEventListener("click", showAnswer);
 
     // Preload common BM audio files so phone playback feels faster after the page opens.
     const bmCommonAudioWords = [
@@ -693,13 +963,22 @@
       setTimeout(preloadMalayAudio, 300);
     }, { once: true });
 
-    document.addEventListener("pointerdown", () => {
+    document.addEventListener("pointerdown", event => {
+      // Important:
+      // If the first tap is the speaker button, speak immediately.
+      // Do not start bulk preload on the same tap, because some phones will delay/block playback.
+      if (event.target.closest("#speakBtn")) return;
+
       preloadMalayAudio();
     }, { once: true });
 
     speakBtn.addEventListener("click", speakCurrentAnswer);
 
     async function speakCurrentAnswer() {
+      // Do not reveal or read the answer before the Answer button is pressed.
+      // Students must press Answer / 答案 / Jawapan first.
+      if (!answerVisible) return;
+
       const total = getTotal();
       const text = languageData[currentLang].words(total);
       if (!text) return;
@@ -956,6 +1235,8 @@
       // BM audio tuning: word gap = 0ms, playbackRate = 1.18, teen fallback enabled
       // BM mobile preload enabled: common MP3 files preload after page open / first touch.
       // Audio load optimized: no phrase-file 404 attempts for 12-19; .MP3 tried first; preload/cache kept.
+      // Answer button added: number and word answer stay hidden until Answer is pressed. Answer/Reset button text follows EN/ZH/BM. PC buttons moved above display; speaker is locked until Answer is pressed.
+      // Update: language buttons changed to dropdown; BM reset changed to Mula Semula; number key-in can set the soroban beads from 0 to 9999.
   </script>
 </body>
 </html>
